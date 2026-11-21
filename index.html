@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Celta OBD</title>
+<style>
+:root{--bg:#0b0f14;--panel:#141a22;--panel2:#1b232d;--line:#26313d;--text:#e8eef5;--mute:#8a98a8;--acc:#3ddc97;--warn:#ffb020;--bad:#ff5d5d;--blue:#4aa3ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 76px) env(safe-area-inset-left)}
+header{position:sticky;top:0;z-index:5;background:rgba(11,15,20,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.3px}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--panel2);color:var(--mute);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--mute);display:inline-block}
+.pill.ok i{background:var(--acc);box-shadow:0 0 8px var(--acc)}.pill.warn i{background:var(--warn)}.pill.bad i{background:var(--bad)}
+.spacer{flex:1}
+button{font:inherit;border:0;border-radius:12px;padding:11px 16px;font-weight:600;cursor:pointer;color:#06110c;background:var(--acc)}
+button.sec{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+button.danger{background:var(--bad);color:#fff}
+button:disabled{opacity:.45}
+main{padding:16px;max-width:900px;margin:0 auto}
+section.tab{display:none}section.tab.on{display:block}
+.banner{background:#2a1f08;border:1px solid #5c4410;color:#ffd58a;border-radius:14px;padding:14px;margin-bottom:14px;font-size:14px;line-height:1.45}
+.banner a{color:#ffe2a8}
+.hello{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;text-align:center}
+.hello p{color:var(--mute);font-size:14px;line-height:1.5;margin:8px 0 16px}
+.hello .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.gauge{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 6px 10px;text-align:center}
+.gauge svg{width:100%;max-width:220px;display:block;margin:0 auto}
+.gauge .lbl{color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.8px;margin-top:-14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.card .n{color:var(--mute);font-size:12px}
+.card .v{font-size:26px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+.card .v small{font-size:13px;color:var(--mute);font-weight:500;margin-left:3px}
+.meta{display:flex;justify-content:space-between;color:var(--mute);font-size:12px;margin:12px 2px 0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.box h2{font-size:15px;margin:0 0 10px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.mil{display:flex;align-items:center;gap:12px;font-size:15px}
+.mil .dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--panel2);font-size:18px}
+.mil.on .dot{background:#4a2a00;box-shadow:0 0 14px var(--warn)}
+.dtc{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.dtc:first-child{border-top:0}
+.dtc .code{font-family:ui-monospace,Menlo,monospace;font-weight:700;font-size:17px;background:var(--panel2);padding:6px 9px;border-radius:8px;color:var(--warn);white-space:nowrap}
+.dtc .code.pend{color:var(--blue)}
+.dtc .d{font-size:14px;line-height:1.4}
+.dtc .d small{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+.empty{color:var(--mute);font-size:14px;padding:6px 0}
+dl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0;font-size:14px}
+dt{color:var(--mute)}dd{margin:0;word-break:break-all;font-variant-numeric:tabular-nums}
+#term{background:#06090d;border:1px solid var(--line);border-radius:12px;height:46vh;overflow:auto;padding:10px;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all}
+#term .tx{color:var(--blue)}#term .rx{color:var(--text)}#term .sys{color:var(--mute)}#term .er{color:var(--bad)}
+.cmdrow{display:flex;gap:8px;margin-top:10px}
+input[type=text]{flex:1;font:16px ui-monospace,Menlo,monospace;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:11px 12px;min-width:0}
+label.chk{display:flex;align-items:center;gap:8px;color:var(--mute);font-size:13px;margin-top:10px}
+.hint{color:var(--mute);font-size:12px;line-height:1.5;margin-top:8px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(15,20,27,.97);border-top:1px solid var(--line);display:flex;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+nav button{flex:1;background:none;color:var(--mute);padding:8px 4px;border-radius:10px;font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button span{font-size:19px;line-height:1}
+nav button.on{color:var(--acc);background:var(--panel)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
+.modal.on{display:flex}
+.modal .in{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;max-width:400px;width:100%}
+.modal h3{margin:0 0 8px}.modal p{color:var(--mute);font-size:14px;line-height:1.5;margin:0 0 16px}
+.modal .actions{justify-content:flex-end}
+#toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;transition:.25s;background:#222c38;border:1px solid var(--line);padding:10px 16px;border-radius:12px;font-size:14px;z-index:30;max-width:90vw;text-align:center;pointer-events:none}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.hidden{display:none!important}
+header h1 small{display:block;font-size:11px;color:var(--mute);font-weight:500;letter-spacing:.4px;margin-top:1px}
+.card.warn{border-color:#6b5012}.card.warn .v{color:var(--warn)}
+.card.bad{border-color:#6b2424}.card.bad .v{color:var(--bad)}
+.card.hl{background:linear-gradient(180deg,#132a20,#141a22);border-color:#1f4434}
+.card .s{color:var(--mute);font-size:11px;margin-top:2px;min-height:13px}
+.sect{color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.8px;margin:18px 2px 8px;display:flex;justify-content:space-between;align-items:center}
+.sect button{padding:5px 12px;font-size:12px;border-radius:9px;text-transform:none;letter-spacing:0}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;background:none;color:var(--mute);padding:10px;border-radius:9px}
+.seg button.on{background:var(--acc);color:#06110c}
+</style>
+</head>
+<body>
+<header>
+  <h1>Celta 1.0 LT<small>2013 · flex · OBD</small></h1>
+  <div id="status" class="pill"><i></i><b id="statusTxt">Desconectado</b></div>
+  <div class="spacer"></div>
+  <button id="btnConnect">Conectar</button>
+  <button id="btnDisconnect" class="sec hidden">Sair</button>
+</header>
+
+<main>
+  <div id="noBt" class="banner hidden">
+    <b>Este navegador não tem Bluetooth para sites.</b><br>
+    No iPhone, abra este endereço no app <a href="https://apps.apple.com/app/id1492822055">Bluefy</a> (gratuito). No Android ou no computador, use o Chrome ou o Edge. Enquanto isso, dá pra testar no <b>Modo demonstração</b>.
+  </div>
+
+  <!-- PAINEL -->
+  <section class="tab on" id="tab-painel">
+    <div id="hello" class="hello">
+      <div style="font-size:40px">🚗</div>
+      <h2 style="margin:6px 0 0">Painel do seu Celta</h2>
+      <p>Encaixe o ELM327 na porta OBD do Celta, ligue a ignição (ou o motor) e toque em <b>Conectar</b>.</p>
+      <div class="row">
+        <button id="btnConnect2">Conectar</button>
+        <button id="btnDemo" class="sec">Modo demonstração</button>
+      </div>
+    </div>
+    <div id="dash" class="hidden">
+      <div class="gauges">
+        <div class="gauge" id="g-rpm"></div>
+        <div class="gauge" id="g-spd"></div>
+      </div>
+      <div class="cards">
+        <div class="card hl"><div class="n">Consumo agora</div><div class="v" id="c-kml">—<small>km/l</small></div><div class="s" id="c-kml-s">estimado</div></div>
+        <div class="card"><div class="n">Gasto por hora</div><div class="v" id="c-lh">—<small>L/h</small></div><div class="s" id="c-fuel">—</div></div>
+        <div class="card" id="card-05"><div class="n">Temp. do motor</div><div class="v" id="v-05">—<small>°C</small></div><div class="s" id="s-05"></div></div>
+        <div class="card" id="card-bat"><div class="n">Bateria</div><div class="v" id="c-bat">—<small>V</small></div><div class="s" id="s-bat"></div></div>
+      </div>
+      <div class="sect"><span>Viagem</span><button class="sec" id="btnTripReset">Zerar</button></div>
+      <div class="cards">
+        <div class="card"><div class="n">Distância</div><div class="v" id="t-dist">0<small>km</small></div></div>
+        <div class="card"><div class="n">Média</div><div class="v" id="t-avg">—<small>km/l</small></div></div>
+        <div class="card"><div class="n">Combustível gasto</div><div class="v" id="t-l">0<small>L</small></div></div>
+        <div class="card"><div class="n">Tempo de motor</div><div class="v" id="t-time">0:00</div></div>
+      </div>
+      <div class="sect"><span>Sensores</span></div>
+      <div class="cards" id="cards"></div>
+      <div class="meta"><span id="rate">—</span><span id="proto">—</span></div>
+    </div>
+  </section>
+
+  <!-- ERROS -->
+  <section class="tab" id="tab-erros">
+    <div class="box">
+      <div class="mil" id="mil"><div class="dot">⚠️</div><div id="milTxt">Conecte para verificar a luz de injeção.</div></div>
+    </div>
+    <div class="box">
+      <h2>Códigos de falha (DTC)</h2>
+      <div id="dtcList"><div class="empty">Toque em “Ler códigos”.</div></div>
+      <div class="actions" style="margin-top:12px">
+        <button id="btnReadDtc" disabled>Ler códigos</button>
+        <button id="btnClearDtc" class="danger" disabled>Apagar códigos</button>
+      </div>
+      <div class="hint">Laranja = confirmado (acende a luz). Azul = pendente (detectado, ainda não confirmado). Apagar só some com a luz; se o defeito continuar, o código volta.</div>
+    </div>
+  </section>
+
+  <!-- INFO -->
+  <section class="tab" id="tab-info">
+    <div class="box">
+      <h2>Veículo e adaptador</h2>
+      <dl>
+        <dt>Chassi (VIN)</dt><dd id="i-vin">—</dd>
+        <dt>Protocolo</dt><dd id="i-proto">—</dd>
+        <dt>Adaptador</dt><dd id="i-elm">—</dd>
+        <dt>Dispositivo</dt><dd id="i-dev">—</dd>
+        <dt>Bateria</dt><dd id="i-volt">—</dd>
+        <dt>Sensores</dt><dd id="i-pids">—</dd>
+      </dl>
+    </div>
+    <div class="box">
+      <h2>Combustível no tanque</h2>
+      <div class="seg" id="fuelSeg"><button data-f="gas">Gasolina</button><button data-f="eth">Etanol</button></div>
+      <div class="hint">O Celta é flex e normalmente não informa pelo OBD o que tem no tanque, então o cálculo de consumo usa o que você escolher aqui. Se misturou, escolha o que predomina.</div>
+      <h2 style="margin-top:16px">Ajuste fino do consumo</h2>
+      <div class="cmdrow" style="margin-top:0;align-items:center">
+        <input type="text" id="calib" inputmode="decimal" placeholder="100">
+        <span style="color:var(--mute)">%</span>
+        <button type="button" class="sec" id="btnCalib">Salvar</button>
+      </div>
+      <div class="hint">O consumo é estimado pela rotação, pressão do coletor e temperatura do ar (o Celta não tem sensor de fluxo de ar). Para calibrar: encha o tanque, zere a viagem e rode até o próximo abastecimento. Depois faça <b>ajuste atual × litros da bomba ÷ litros do app</b> e salve o resultado aqui.</div>
+    </div>
+    <div class="box">
+      <h2>Ficha do Celta 1.0 LT 2013</h2>
+      <dl>
+        <dt>Motor</dt><dd>1.0 VHC-E 8V flex, 999 cm³</dd>
+        <dt>Potência</dt><dd>77 cv (G) / 78 cv (E) a 6.400 rpm</dd>
+        <dt>Torque</dt><dd>9,5 kgfm (G) / 9,7 kgfm (E) a 5.200 rpm</dd>
+        <dt>Câmbio</dt><dd>manual de 5 marchas</dd>
+        <dt>Tanque</dt><dd>54 litros</dd>
+      </dl>
+    </div>
+    <div class="hint" style="padding:0 4px">A tensão da bateria vem do próprio adaptador. Com motor ligado, o normal é ~13,5–14,5 V; desligado, ~12,4–12,7 V.</div>
+  </section>
+
+  <!-- TERMINAL -->
+  <section class="tab" id="tab-term">
+    <div id="term"></div>
+    <form class="cmdrow" id="cmdForm">
+      <input type="text" id="cmdIn" placeholder="ex.: 010C ou ATRV" autocapitalize="characters" autocomplete="off" spellcheck="false">
+      <button type="submit">Enviar</button>
+    </form>
+    <label class="chk"><input type="checkbox" id="logPoll"> Mostrar as leituras do painel no terminal</label>
+    <div class="box" style="margin-top:14px">
+      <h2>Avançado</h2>
+      <div class="cmdrow" style="margin-top:0">
+        <input type="text" id="extraUuid" placeholder="UUID de serviço BLE extra (opcional)" autocomplete="off" spellcheck="false" style="font-size:14px">
+        <button type="button" class="sec" id="btnSaveUuid">Salvar</button>
+      </div>
+      <div class="hint">Só preencha se o seu adaptador não for encontrado. Os mais comuns (FFF0, FFE0, 18F0 e outros) já estão incluídos.</div>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button class="on" data-tab="painel"><span>⏱️</span>Painel</button>
+  <button data-tab="erros"><span>⚠️</span>Erros</button>
+  <button data-tab="info"><span>ℹ️</span>Info</button>
+  <button data-tab="term"><span>⌨️</span>Terminal</button>
+</nav>
+
+<div class="modal" id="modal"><div class="in">
+  <h3 id="mTitle"></h3><p id="mText"></p>
+  <div class="actions"><button class="sec" id="mNo">Cancelar</button><button class="danger" id="mYes">Confirmar</button></div>
+</div></div>
+<div id="toast"></div>
+
+<script>
+// ===== PURE (sem DOM — testável) =====
+const BLE_SERVICES = [
+  '0000fff0-0000-1000-8000-00805f9b34fb', // Vgate iCar BLE, Veepeak, maioria dos clones
+  '0000ffe0-0000-1000-8000-00805f9b34fb', // clones estilo HM-10
+  '000018f0-0000-1000-8000-00805f9b34fb', // alguns ELM327 BLE / V-Link
+  'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Vgate / V-Link iOS
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Microchip transparent UART
+  '6e400001-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART
+  '0000ffb0-0000-1000-8000-00805f9b34fb',
+  '0000beef-0000-1000-8000-00805f9b34fb'
+];
+
+const PIDS = [
+  {pid:'0C', n:'Rotação',             u:'rpm',  b:2, f:(a,b)=>(a*256+b)/4, d:0},
+  {pid:'0D', n:'Velocidade',          u:'km/h', b:1, f:a=>a, d:0},
+  {pid:'05', n:'Temp. do motor',      u:'°C',   b:1, f:a=>a-40, d:0},
+  {pid:'04', n:'Carga do motor',      u:'%',    b:1, f:a=>a*100/255, d:0},
+  {pid:'11', n:'Acelerador',          u:'%',    b:1, f:a=>a*100/255, d:0},
+  {pid:'0F', n:'Temp. ar admissão',   u:'°C',   b:1, f:a=>a-40, d:0},
+  {pid:'0B', n:'Pressão coletor',     u:'kPa',  b:1, f:a=>a, d:0},
+  {pid:'10', n:'Fluxo de ar (MAF)',   u:'g/s',  b:2, f:(a,b)=>(a*256+b)/100, d:1},
+  {pid:'0E', n:'Avanço de ignição',   u:'°',    b:1, f:a=>a/2-64, d:1},
+  {pid:'06', n:'Ajuste curto comb.',  u:'%',    b:1, f:a=>(a-128)*100/128, d:1},
+  {pid:'07', n:'Ajuste longo comb.',  u:'%',    b:1, f:a=>(a-128)*100/128, d:1},
+  {pid:'2F', n:'Nível combustível',   u:'%',    b:1, f:a=>a*100/255, d:0},
+  {pid:'5C', n:'Temp. do óleo',       u:'°C',   b:1, f:a=>a-40, d:0},
+  {pid:'46', n:'Temp. ambiente',      u:'°C',   b:1, f:a=>a-40, d:0},
+  {pid:'42', n:'Tensão da ECU',       u:'V',    b:2, f:(a,b)=>(a*256+b)/1000, d:1},
+  {pid:'5E', n:'Consumo',             u:'L/h',  b:2, f:(a,b)=>(a*256+b)/20, d:1},
+  {pid:'33', n:'Pressão atmosférica', u:'kPa',  b:1, f:a=>a, d:0},
+  {pid:'1F', n:'Motor ligado há',     u:'',     b:2, f:(a,b)=>a*256+b, d:0, fmt:s=>{const m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0')}},
+  {pid:'21', n:'Rodado c/ luz acesa', u:'km',   b:2, f:(a,b)=>a*256+b, d:0},
+  {pid:'31', n:'Rodado desde limpeza',u:'km',   b:2, f:(a,b)=>a*256+b, d:0},
+  {pid:'52', n:'Etanol no tanque',    u:'%',    b:1, f:a=>a*100/255, d:0}
+];
+
+// ===== Celta 1.0 LT 2013 (VHC-E 8V flex) =====
+const CAR = {disp:0.999, ve:0.85, rpmMax:7000, rpmRed:6400, spdMax:180, tank:54};
+const FUEL = {
+  gas:{n:'Gasolina', afr:13.2, dens:750},  // gasolina C (com etanol anidro)
+  eth:{n:'Etanol',   afr:9.0,  dens:809}   // etanol hidratado
+};
+function fuelParams(kind, ethPct){
+  if(ethPct!=null && !isNaN(ethPct)){
+    const t=Math.max(0,Math.min(1,(ethPct-27)/(95-27)));
+    return {afr:FUEL.gas.afr+(FUEL.eth.afr-FUEL.gas.afr)*t, dens:FUEL.gas.dens+(FUEL.eth.dens-FUEL.gas.dens)*t};
+  }
+  return FUEL[kind]||FUEL.gas;
+}
+// Litros/hora. Usa o PID de consumo, depois MAF, e por fim cálculo por densidade (MAP + rpm + temp. do ar)
+function fuelLh(v, kind, calib){
+  if(v['0C']!=null && v['0C']<300) return 0;
+  let lh=null;
+  if(v['5E']!=null) lh=v['5E'];
+  else{
+    let maf=null;
+    if(v['10']!=null) maf=v['10'];
+    else if(v['0C']!=null && v['0B']!=null){
+      const T=(v['0F']!=null?v['0F']:30)+273.15;
+      maf=(v['0B']*1000 * CAR.disp/1000 * CAR.ve * v['0C']/120)/(287.05*T)*1000; // g/s
+    }
+    if(maf==null) return null;
+    let trim=1; if(v['06']!=null) trim+=v['06']/100; if(v['07']!=null) trim+=v['07']/100;
+    const f=fuelParams(kind, v['52']);
+    lh=maf/f.afr*trim*3600/f.dens;
+  }
+  return lh*(calib||100)/100;
+}
+const PID_BY = Object.fromEntries(PIDS.map(p=>[p.pid,p]));
+
+function hexOnly(s){ return String(s).replace(/[^0-9A-Fa-f]/g,'').toUpperCase(); }
+
+// Extrai o valor de um PID do modo 01 a partir da resposta crua do ELM
+function parsePid(raw, def){
+  const lines = String(raw).split(/[\r\n]+/).map(hexOnlyKeepColon).filter(Boolean);
+  for(const l of lines){
+    const h = l.replace(/^[0-9A-F]:/,'');
+    const i = h.indexOf('41'+def.pid);
+    if(i<0) continue;
+    const bytes=[];
+    for(let k=0;k<def.b;k++){
+      const x=h.substr(i+4+k*2,2);
+      if(x.length<2) return null;
+      bytes.push(parseInt(x,16));
+    }
+    return def.f(...bytes);
+  }
+  return null;
+}
+function hexOnlyKeepColon(s){ return String(s).replace(/[^0-9A-Fa-f:]/g,'').toUpperCase(); }
+
+// Bitmask de PIDs suportados (resposta de 0100/0120/0140...)
+function parseSupported(raw, base){
+  const h = hexOnly(raw);
+  const key = '41'+base;
+  const i = h.indexOf(key);
+  if(i<0) return [];
+  const data = h.substr(i+4,8);
+  if(data.length<8) return [];
+  const bits = parseInt(data,16);
+  const out=[];
+  const b = parseInt(base,16);
+  for(let k=0;k<32;k++){
+    if(bits & (1<<(31-k))) out.push((b+k+1).toString(16).toUpperCase().padStart(2,'0'));
+  }
+  return out;
+}
+
+// Junta respostas multi-quadro (ISO-TP "0:", "1:"...) em quadros únicos
+function framesOf(raw){
+  let lines = String(raw).split(/[\r\n]+/).map(hexOnlyKeepColon).filter(l=>l && /^[0-9A-F:]+$/.test(l));
+  if(!lines.some(l=>/^[0-9A-F]:/.test(l))) return lines;
+  const frames=[]; let cur=null;
+  for(const l of lines){
+    if(/^0:/.test(l)){ if(cur!==null) frames.push(cur); cur=l.slice(2); }
+    else if(/^[1-9A-F]:/.test(l)){ if(cur!==null) cur+=l.slice(2); }
+    else if(/^[0-9A-F]{3}$/.test(l)){ /* linha de tamanho */ }
+    else { if(cur!==null){frames.push(cur);cur=null;} frames.push(l); }
+  }
+  if(cur!==null) frames.push(cur);
+  return frames;
+}
+
+function decodeDtc(c){
+  const b0 = parseInt(c.slice(0,2),16);
+  return 'PCBU'[b0>>6] + ((b0>>4)&3) + (b0&15).toString(16).toUpperCase() + c.slice(2,4).toUpperCase();
+}
+
+// Lê códigos de modo 03 (resp 43) / 07 (resp 47)
+function parseDtcs(raw, resp, isCAN){
+  const codes = new Set();
+  for(const f of framesOf(raw)){
+    const i = f.indexOf(resp);
+    if(i<0) continue;
+    let d = f.slice(i+2);
+    let max = Infinity;
+    if(isCAN){ max = parseInt(d.slice(0,2),16); d = d.slice(2); if(isNaN(max)) max=0; }
+    let count=0;
+    for(let j=0; j+4<=d.length && count<max; j+=4){
+      const c = d.slice(j,j+4);
+      if(isCAN) count++;
+      if(c==='0000') continue;
+      codes.add(decodeDtc(c));
+    }
+  }
+  return [...codes];
+}
+
+function parseVin(raw){
+  let s='';
+  for(let f of framesOf(raw)){
+    const k=f.indexOf('4902');
+    if(k<0) continue;
+    f=f.slice(k+6); // pula 49 02 + byte de contagem/sequência
+    for(let i=0;i+2<=f.length;i+=2){
+      const c = parseInt(f.substr(i,2),16);
+      if((c>=48&&c<=57)||(c>=65&&c<=90)) s+=String.fromCharCode(c);
+    }
+  }
+  return s.length>=17 ? s.slice(-17) : null;
+}
+
+function parseMil(raw){
+  const h = hexOnly(raw); const i = h.indexOf('4101');
+  if(i<0) return null;
+  const a = parseInt(h.substr(i+4,2),16);
+  if(isNaN(a)) return null;
+  return {on: !!(a&0x80), count: a&0x7F};
+}
+
+const DTC_DB = {
+  P0100:'Circuito do sensor de fluxo de ar (MAF)', P0101:'Sensor MAF fora da faixa esperada', P0102:'Sensor MAF com sinal baixo', P0103:'Sensor MAF com sinal alto',
+  P0105:'Circuito do sensor de pressão do coletor (MAP)', P0106:'Sensor MAP fora da faixa esperada', P0107:'Sensor MAP com sinal baixo', P0108:'Sensor MAP com sinal alto',
+  P0110:'Circuito do sensor de temperatura do ar', P0112:'Sensor de temp. do ar com sinal baixo', P0113:'Sensor de temp. do ar com sinal alto',
+  P0115:'Circuito do sensor de temperatura do motor', P0116:'Sensor de temp. do motor fora da faixa', P0117:'Sensor de temp. do motor com sinal baixo', P0118:'Sensor de temp. do motor com sinal alto',
+  P0120:'Circuito do sensor de posição da borboleta (TPS)', P0121:'Sensor TPS fora da faixa', P0122:'Sensor TPS com sinal baixo', P0123:'Sensor TPS com sinal alto',
+  P0130:'Sonda lambda (banco 1, sensor 1) – circuito', P0131:'Sonda lambda B1S1 com tensão baixa', P0132:'Sonda lambda B1S1 com tensão alta', P0133:'Sonda lambda B1S1 com resposta lenta', P0134:'Sonda lambda B1S1 sem atividade', P0135:'Aquecedor da sonda lambda B1S1',
+  P0136:'Sonda lambda (banco 1, sensor 2) – circuito', P0141:'Aquecedor da sonda lambda B1S2',
+  P0171:'Mistura pobre (banco 1)', P0172:'Mistura rica (banco 1)', P0174:'Mistura pobre (banco 2)', P0175:'Mistura rica (banco 2)',
+  P0300:'Falha de combustão aleatória / múltiplos cilindros',
+  P0325:'Sensor de detonação – circuito', P0335:'Sensor de rotação (virabrequim) – circuito', P0340:'Sensor de fase (comando de válvulas) – circuito',
+  P0400:'Fluxo da EGR', P0401:'Fluxo da EGR insuficiente',
+  P0420:'Eficiência do catalisador abaixo do limite (banco 1)', P0430:'Eficiência do catalisador abaixo do limite (banco 2)',
+  P0440:'Sistema de controle evaporativo (canister)', P0442:'Vazamento pequeno no sistema evaporativo', P0443:'Válvula de purga do canister – circuito', P0455:'Vazamento grande no sistema evaporativo', P0456:'Vazamento muito pequeno no sistema evaporativo',
+  P0500:'Sensor de velocidade do veículo', P0505:'Controle de marcha lenta', P0506:'Marcha lenta abaixo do esperado', P0507:'Marcha lenta acima do esperado',
+  P0560:'Tensão do sistema', P0562:'Tensão do sistema baixa', P0563:'Tensão do sistema alta',
+  P0600:'Falha de comunicação serial', P0601:'Erro de memória da ECU', P0700:'Sistema de controle da transmissão',
+  U0073:'Barramento CAN desligado', U0100:'Perda de comunicação com a ECU do motor', U0101:'Perda de comunicação com a ECU do câmbio', U0121:'Perda de comunicação com o módulo do ABS', U0140:'Perda de comunicação com o módulo da carroceria'
+};
+for(let i=1;i<=8;i++){
+  DTC_DB['P030'+i]='Falha de combustão no cilindro '+i;
+  DTC_DB['P020'+i]='Injetor do cilindro '+i+' – circuito';
+  DTC_DB['P035'+i]='Bobina de ignição do cilindro '+i+' – circuito';
+}
+function dtcDesc(code){
+  if(DTC_DB[code]) return {t:DTC_DB[code], g:''};
+  const L=code[0], d1=code[1], d2=code[2];
+  const sys = {P:'Motor/câmbio',C:'Chassi (freios, direção, suspensão)',B:'Carroceria (airbag, conforto, travas)',U:'Rede de comunicação entre módulos'}[L];
+  if(L==='P' && d1==='0'){
+    const g = {'0':'Medição de ar e combustível','1':'Medição de ar e combustível','2':'Injeção de combustível','3':'Ignição / falha de combustão','4':'Controle de emissões','5':'Velocidade, marcha lenta e entradas','6':'Computador (ECU) e saídas','7':'Transmissão','8':'Transmissão','9':'Transmissão'}[d2];
+    return {t:g, g:'Código genérico'};
+  }
+  if(d1!=='0') return {t:sys, g:'Código específico do fabricante — consulte o manual ou a concessionária'};
+  return {t:sys, g:'Código genérico'};
+}
+// ===== END PURE =====
+
+// ===== Conexão ELM327 via Web Bluetooth =====
+class Elm {
+  constructor(onLog){ this.onLog=onLog; this.buf=''; this.waiter=null; this.chain=Promise.resolve(); this.connected=false; this.dec=new TextDecoder(); this.enc=new TextEncoder(); }
+  async connect(extra){
+    const services = BLE_SERVICES.slice(); if(extra) services.push(extra.toLowerCase());
+    this.device = await navigator.bluetooth.requestDevice({acceptAllDevices:true, optionalServices:services});
+    this.device.addEventListener('gattserverdisconnected', ()=>{ this.connected=false; this.onDisconnect && this.onDisconnect(); });
+    this.onLog('sys','Conectando a '+(this.device.name||'dispositivo')+'…');
+    const server = await this.device.gatt.connect();
+    let svcList=[];
+    for(const u of services){ try{ svcList.push(await server.getPrimaryService(u)); }catch(e){} }
+    if(!svcList.length){ try{ svcList = await server.getPrimaryServices(); }catch(e){} }
+    let pick=null;
+    for(const s of svcList){
+      let chars=[]; try{ chars = await s.getCharacteristics(); }catch(e){ continue; }
+      const w = chars.find(c=>c.properties.write||c.properties.writeWithoutResponse);
+      const n = chars.find(c=>c.properties.notify||c.properties.indicate);
+      if(w&&n){ pick={s,w,n}; break; }
+    }
+    if(!pick) throw new Error('Não achei o canal de dados do adaptador. Veja a aba Terminal › Avançado.');
+    this.writeChar=pick.w; this.notifyChar=pick.n;
+    this.onLog('sys','Serviço '+pick.s.uuid.slice(0,8)+' · escrita '+pick.w.uuid.slice(0,8)+' · notificação '+pick.n.uuid.slice(0,8));
+    await this.notifyChar.startNotifications();
+    this.notifyChar.addEventListener('characteristicvaluechanged', e=>this.onData(e.target.value));
+    this.connected=true;
+  }
+  onData(dv){
+    this.buf += this.dec.decode(dv);
+    if(this.buf.includes('>') && this.waiter){ const w=this.waiter; this.waiter=null; w(this.buf); }
+  }
+  async _write(str){
+    const bytes=this.enc.encode(str);
+    for(let i=0;i<bytes.length;i+=20){
+      const chunk=bytes.slice(i,i+20);
+      if(this.writeChar.properties.writeWithoutResponse && this.writeChar.writeValueWithoutResponse) await this.writeChar.writeValueWithoutResponse(chunk);
+      else await this.writeChar.writeValue(chunk);
+    }
+  }
+  _send(cmd, timeout, quiet){
+    return new Promise(async (resolve,reject)=>{
+      if(!this.connected) return reject(new Error('Desconectado'));
+      this.buf='';
+      const t=setTimeout(()=>{ this.waiter=null; reject(new Error('Sem resposta para '+cmd)); }, timeout);
+      this.waiter = raw=>{ clearTimeout(t); resolve(cleanResp(raw,cmd)); };
+      if(!quiet) this.onLog('tx',cmd);
+      try{ await this._write(cmd+'\r'); }catch(e){ clearTimeout(t); this.waiter=null; reject(e); }
+    }).then(r=>{ if(!quiet) this.onLog('rx', r||'(vazio)'); return r; }, e=>{ this.onLog('er', e.message); throw e; });
+  }
+  cmd(cmd, timeout=3000, quiet=false){
+    const p = this.chain.then(()=>this._send(cmd,timeout,quiet));
+    this.chain = p.catch(()=>{});
+    return p;
+  }
+  disconnect(){ try{ this.device && this.device.gatt.connected && this.device.gatt.disconnect(); }catch(e){} this.connected=false; }
+}
+function cleanResp(raw, cmd){
+  const c = cmd.replace(/\s/g,'').toUpperCase();
+  return raw.replace(/>/g,'').split(/[\r\n]+/).map(x=>x.trim())
+    .filter(x=>x && x.replace(/\s/g,'').toUpperCase()!==c && !/^SEARCHING/i.test(x) && !/^BUS INIT.*OK/i.test(x))
+    .join('\n');
+}
+const BAD = /NO DATA|UNABLE TO CONNECT|CAN ERROR|BUS ERROR|BUS INIT.*ERROR|STOPPED|^\?$|ERROR/i;
+
+// ===== App =====
+const $=s=>document.querySelector(s);
+const S = {elm:null, demo:false, running:false, supported:new Set(), isCAN:false, wake:null, v:{}, bat:null, kml:null, alerted:{},
+  cfg:{fuel:'gas', calib:100}, trip:{dist:0,l:0,t:0}};
+function store(k,o){ try{ localStorage.setItem(k,JSON.stringify(o)); }catch(e){} }
+function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+Object.assign(S.cfg, load('celta_cfg')||{});
+Object.assign(S.trip, load('celta_trip')||{});
+const fmt=(n,d)=>n.toFixed(d).replace('.',',');
+
+function setStatus(t, cls){ $('#statusTxt').textContent=t; $('#status').className='pill '+(cls||''); }
+let toastT; function toast(m,ms=3200){ const el=$('#toast'); el.textContent=m; el.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),ms); }
+function ask(title,text,yes='Confirmar'){ return new Promise(r=>{ $('#mTitle').textContent=title; $('#mText').textContent=text; $('#mYes').textContent=yes; $('#modal').classList.add('on'); const done=v=>{ $('#modal').classList.remove('on'); $('#mYes').onclick=$('#mNo').onclick=null; r(v); }; $('#mYes').onclick=()=>done(true); $('#mNo').onclick=()=>done(false); }); }
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+const term=$('#term');
+function log(kind,msg){
+  const d=document.createElement('div'); d.className=kind;
+  d.textContent=(kind==='tx'?'→ ':kind==='rx'?'← ':kind==='er'?'✕ ':'· ')+msg;
+  term.appendChild(d); while(term.childNodes.length>400) term.removeChild(term.firstChild);
+  term.scrollTop=term.scrollHeight;
+}
+
+// Tabs
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('section.tab').forEach(s=>s.classList.toggle('on',s.id==='tab-'+b.dataset.tab));
+  window.scrollTo(0,0);
+});
+
+// Gauges
+function gaugeSvg(id,label,max,red){
+  const el=$('#'+id);
+  el.innerHTML=`<svg viewBox="0 0 200 175"><path d="M43.43 156.57 A80 80 0 1 1 156.57 156.57" fill="none" stroke="#222c38" stroke-width="14" stroke-linecap="round" pathLength="100"/>
+  ${red?`<path d="M43.43 156.57 A80 80 0 1 1 156.57 156.57" fill="none" stroke="#5a2020" stroke-width="14" pathLength="100" stroke-dasharray="0 ${red*100} 100"/>`:''}
+  <path class="arc" d="M43.43 156.57 A80 80 0 1 1 156.57 156.57" fill="none" stroke="var(--acc)" stroke-width="14" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/>
+  <text class="val" x="100" y="108" text-anchor="middle" fill="var(--text)" font-size="40" font-weight="700" style="font-variant-numeric:tabular-nums">—</text>
+  <text x="100" y="132" text-anchor="middle" fill="var(--mute)" font-size="13">${label==='rpm'?'rpm':'km/h'}</text></svg>
+  <div class="lbl">${label==='rpm'?'Rotação':'Velocidade'}</div>`;
+  el._max=max; el._red=red;
+}
+function setGauge(id,v){
+  const el=$('#'+id); if(!el._max) return;
+  const pct=Math.max(0,Math.min(1,v/el._max))*100;
+  const arc=el.querySelector('.arc');
+  arc.setAttribute('stroke-dasharray',pct+' 100');
+  arc.setAttribute('stroke', el._red && pct/100>=el._red ? 'var(--bad)' : 'var(--acc)');
+  el.querySelector('.val').textContent=Math.round(v);
+}
+gaugeSvg('g-rpm','rpm',CAR.rpmMax,CAR.rpmRed/CAR.rpmMax);
+gaugeSvg('g-spd','spd',CAR.spdMax,0);
+
+function buildCards(){
+  const c=$('#cards'); c.innerHTML='';
+  for(const p of PIDS){
+    if(['0C','0D','05','5E'].includes(p.pid)) continue;
+    if(!S.supported.has(p.pid)) continue;
+    const d=document.createElement('div'); d.className='card';
+    d.innerHTML=`<div class="n">${p.n}</div><div class="v" id="v-${p.pid}">—<small>${p.u}</small></div>`;
+    c.appendChild(d);
+  }
+  if(!c.children.length) c.innerHTML='<div class="empty">Este carro não informou outros sensores.</div>';
+}
+function showValue(pid,v){
+  if(v==null||isNaN(v)) return;
+  S.v[pid]=v;
+  if(pid==='0C') return setGauge('g-rpm',v);
+  if(pid==='0D') return setGauge('g-spd',v);
+  const p=PID_BY[pid]; const el=$('#v-'+pid); if(!el) return;
+  const txt = p.fmt ? p.fmt(v) : v.toFixed(p.d).replace('.',',');
+  el.innerHTML = txt+'<small>'+p.u+'</small>';
+}
+
+// ---- Consumo, viagem e alertas (chamado a cada ciclo) ----
+let tripSaveT=0;
+function tick(dt){
+  const v=S.v, rpm=v['0C'], spd=v['0D'];
+  const lh=fuelLh(v,S.cfg.fuel,S.cfg.calib);
+  const fuelName = v['52']!=null ? 'etanol '+Math.round(v['52'])+'% (ECU)' : FUEL[S.cfg.fuel].n.toLowerCase();
+  $('#c-fuel').textContent=fuelName+(S.cfg.calib!=100?' · ajuste '+S.cfg.calib+'%':'');
+  if(lh==null){
+    $('#c-lh').innerHTML='n/d<small>L/h</small>'; $('#c-kml').innerHTML='n/d<small>km/l</small>';
+    $('#c-kml-s').textContent='sensores insuficientes';
+  } else {
+    $('#c-lh').innerHTML=fmt(lh,1)+'<small>L/h</small>';
+    if(spd!=null && spd>=5 && lh>0.05){
+      const k=Math.min(spd/lh,99.9);
+      S.kml = S.kml==null ? k : S.kml*0.7+k*0.3;
+      $('#c-kml').innerHTML=fmt(S.kml,1)+'<small>km/l</small>'; $('#c-kml-s').textContent='estimado';
+    } else { S.kml=null; $('#c-kml').innerHTML='—<small>km/l</small>'; $('#c-kml-s').textContent=(rpm>300?'parado (marcha lenta)':'motor desligado'); }
+  }
+  // viagem
+  if(dt>0 && dt<5){
+    if(spd!=null) S.trip.dist+=spd*dt/3600;
+    if(lh!=null) S.trip.l+=lh*dt/3600;
+    if(rpm>300) S.trip.t+=dt;
+  }
+  renderTrip();
+  if((tripSaveT+=dt)>5 && !S.demo){ tripSaveT=0; store('celta_trip',S.trip); }
+  // alertas de temperatura
+  const tc=v['05'], cardT=$('#card-05');
+  if(tc!=null){
+    const lvl = tc>=110?'bad':tc>=105?'warn':'';
+    cardT.className='card '+lvl;
+    $('#s-05').textContent = tc<70?'motor frio — pegue leve':lvl==='bad'?'MUITO QUENTE — pare o carro':lvl==='warn'?'acima do normal':'normal';
+    alertOnce('temp', lvl==='bad', 'Motor muito quente ('+Math.round(tc)+' °C). Pare em local seguro e desligue.');
+  }
+  // bateria
+  if(S.bat!=null){
+    const run=rpm>400; let lvl='', s='';
+    if(run){ if(S.bat<12.5){lvl='bad';s='não está carregando';} else if(S.bat<13.2){lvl='warn';s='carga baixa — ver alternador';} else if(S.bat>15){lvl='bad';s='tensão alta demais';} else s='carregando'; }
+    else { if(S.bat<12.0){lvl='bad';s='bateria fraca';} else if(S.bat<12.4){lvl='warn';s='bateria baixa';} else s='motor desligado'; }
+    $('#card-bat').className='card '+lvl; $('#s-bat').textContent=s;
+    $('#c-bat').innerHTML=fmt(S.bat,1)+'<small>V</small>';
+    alertOnce('bat', lvl==='bad', 'Bateria: '+s+' ('+fmt(S.bat,1)+' V)');
+  }
+}
+function alertOnce(key,cond,msg){
+  if(cond && !S.alerted[key]){ S.alerted[key]=true; toast('⚠️ '+msg,6000); try{ navigator.vibrate && navigator.vibrate([200,100,200]); }catch(e){} }
+  if(!cond) S.alerted[key]=false;
+}
+function renderTrip(){
+  const t=S.trip;
+  $('#t-dist').innerHTML=fmt(t.dist,t.dist<100?1:0)+'<small>km</small>';
+  $('#t-l').innerHTML=fmt(t.l,2)+'<small>L</small>';
+  $('#t-avg').innerHTML=(t.l>0.05&&t.dist>0.2?fmt(Math.min(t.dist/t.l,99.9),1):'—')+'<small>km/l</small>';
+  const m=Math.floor(t.t/60); $('#t-time').textContent=Math.floor(m/60)+':'+String(m%60).padStart(2,'0');
+}
+$('#btnTripReset').onclick=async()=>{
+  if(!await ask('Zerar a viagem?','Distância, combustível gasto, média e tempo voltam para zero.','Zerar')) return;
+  S.trip={dist:0,l:0,t:0}; if(!S.demo) store('celta_trip',S.trip); renderTrip();
+};
+function renderFuelSeg(){ document.querySelectorAll('#fuelSeg button').forEach(b=>b.classList.toggle('on',b.dataset.f===S.cfg.fuel)); }
+document.querySelectorAll('#fuelSeg button').forEach(b=>b.onclick=()=>{ S.cfg.fuel=b.dataset.f; store('celta_cfg',S.cfg); renderFuelSeg(); toast('Combustível: '+FUEL[S.cfg.fuel].n); });
+renderFuelSeg();
+$('#calib').value=S.cfg.calib;
+$('#btnCalib').onclick=()=>{
+  const n=parseFloat(String($('#calib').value).replace(',','.'));
+  if(!(n>=50&&n<=200)){ toast('Use um valor entre 50 e 200'); return; }
+  S.cfg.calib=Math.round(n*10)/10; store('celta_cfg',S.cfg); $('#calib').value=S.cfg.calib; toast('Ajuste salvo: '+S.cfg.calib+'%');
+};
+renderTrip();
+
+function setConnectedUI(on){
+  $('#btnConnect').classList.toggle('hidden',on);
+  $('#btnDisconnect').classList.toggle('hidden',!on);
+  $('#hello').classList.toggle('hidden',on);
+  $('#dash').classList.toggle('hidden',!on);
+  $('#btnReadDtc').disabled=!on; $('#btnClearDtc').disabled=!on;
+}
+
+async function keepAwake(){ try{ if('wakeLock' in navigator) S.wake=await navigator.wakeLock.request('screen'); }catch(e){} }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && (S.running)) keepAwake(); });
+
+// ---- Conectar ----
+async function connect(){
+  if(!navigator.bluetooth){ $('#noBt').classList.remove('hidden'); toast('Bluetooth indisponível neste navegador'); return; }
+  let extra=''; try{ extra=localStorage.getItem('obd_extra_uuid')||''; }catch(e){}
+  const elm=new Elm(log); S.elm=elm; S.demo=false; S.v={}; S.bat=null; S.kml=null;
+  elm.onDisconnect=()=>{ if(S.elm===elm) onLost(); };
+  setStatus('Conectando…','warn');
+  try{
+    await elm.connect(extra);
+    setStatus('Iniciando…','warn');
+    await initElm(elm);
+    setStatus('Conectado','ok');
+    setConnectedUI(true); buildCards(); keepAwake();
+    pollLoop(elm);
+    readMil();
+  }catch(e){
+    log('er',e.message||String(e));
+    elm.disconnect(); S.elm=null;
+    setStatus('Desconectado','bad');
+    if(e && e.name==='NotFoundError') toast('Nenhum dispositivo escolhido');
+    else toast(e.message||'Falha ao conectar',5000);
+  }
+}
+
+async function initElm(elm){
+  log('sys','Reiniciando o ELM327…');
+  try{ await elm.cmd('ATZ',4000); }catch(e){}
+  await sleep(600);
+  // Usa o protocolo que funcionou da última vez (com busca automática se falhar)
+  let savedProto=''; try{ savedProto=localStorage.getItem('celta_proto')||''; }catch(e){}
+  const sp = /^[1-9A-C]$/.test(savedProto) ? 'ATSPA'+savedProto : 'ATSP0';
+  for(const c of ['ATE0','ATL0','ATS0','ATH0','ATAT1',sp]){ try{ await elm.cmd(c,2000); }catch(e){} }
+  try{ $('#i-elm').textContent = await elm.cmd('ATI',2000); }catch(e){}
+  $('#i-dev').textContent = elm.device && elm.device.name || '—';
+  readVoltage(elm);
+  setStatus('Procurando protocolo…','warn');
+  const r = await elm.cmd('0100',15000);
+  if(!/41\s*00/i.test(r)){
+    if(/UNABLE|NO DATA|ERROR/i.test(r)) throw new Error('O carro não respondeu. Ligue a ignição (ou o motor) e conecte de novo.');
+    throw new Error('Resposta inesperada do carro: '+r);
+  }
+  try{
+    const dpn = await elm.cmd('ATDPN',2000);
+    const n = dpn.replace(/^A/i,'').trim().toUpperCase().slice(-1);
+    S.isCAN = '6789ABC'.includes(n);
+    if(/^[1-9A-C]$/.test(n)) try{ localStorage.setItem('celta_proto',n); }catch(e){}
+    const dp = await elm.cmd('ATDP',2000);
+    $('#i-proto').textContent=dp.replace(/^AUTO,\s*/i,''); $('#proto').textContent=dp.replace(/^AUTO,\s*/i,'');
+  }catch(e){}
+  S.supported=new Set();
+  let resp=r, base='00';
+  while(true){
+    const list=parseSupported(resp,base);
+    list.forEach(p=>S.supported.add(p));
+    const next=(parseInt(base,16)+0x20).toString(16).toUpperCase().padStart(2,'0');
+    if(!list.includes(next) || parseInt(next,16)>0x60) break;
+    try{ resp=await elm.cmd('01'+next,3000); base=next; }catch(e){ break; }
+  }
+  const known=PIDS.filter(p=>S.supported.has(p.pid)).length;
+  $('#i-pids').textContent=S.supported.size+' informados pelo carro ('+known+' exibidos no painel)';
+  log('sys','PIDs suportados: '+[...S.supported].join(' '));
+  try{
+    const v=await elm.cmd('0902',6000);
+    const vin=parseVin(v); $('#i-vin').textContent=vin||'não informado';
+  }catch(e){ $('#i-vin').textContent='não informado'; }
+}
+
+async function readVoltage(elm){
+  try{ const v=await elm.cmd('ATRV',2000, !$('#logPoll').checked); const m=v.match(/[\d.]+/); if(m){ S.bat=parseFloat(m[0]); $('#i-volt').textContent=fmt(S.bat,1)+' V'; } }catch(e){}
+}
+
+async function pollLoop(elm){
+  S.running=true;
+  // rápido: o que o painel e o consumo precisam a todo instante
+  const fastList=['0C','0D', S.supported.has('5E')?'5E':S.supported.has('10')?'10':'0B'];
+  const fast=fastList.filter(p=>S.supported.has(p));
+  const slow=PIDS.filter(p=>!fast.includes(p.pid)&&S.supported.has(p.pid));
+  let i=0, cnt=0, t0=performance.now(), loops=0, last=performance.now();
+  while(S.running && S.elm===elm && elm.connected){
+    if(S.pause){ await sleep(150); continue; }
+    const quiet=!$('#logPoll').checked;
+    const batch = fast.slice(); if(slow.length) batch.push(slow[i++ % slow.length].pid);
+    if(!batch.length){ await sleep(1000); continue; }
+    for(const pid of batch){
+      try{
+        const r=await elm.cmd('01'+pid,2500,quiet);
+        if(!BAD.test(r)){ showValue(pid, parsePid(r,PID_BY[pid])); cnt++; }
+      }catch(e){ await sleep(100); }
+    }
+    if(++loops%10===1) await readVoltage(elm);
+    const now=performance.now();
+    tick((now-last)/1000); last=now;
+    if(now-t0>1000){ $('#rate').textContent=(cnt*1000/(now-t0)).toFixed(1).replace('.',',')+' leituras/s'; cnt=0; t0=now; }
+  }
+}
+
+function onLost(){
+  S.running=false; S.elm=null;
+  setStatus('Desconectado','bad'); setConnectedUI(false);
+  log('er','Conexão perdida'); toast('Conexão com o adaptador perdida');
+  try{ S.wake && S.wake.release(); }catch(e){}
+}
+function disconnect(){
+  S.running=false;
+  if(S.demo){ S.demo=false; clearInterval(S.demoT); if(S.realTrip){ S.trip=S.realTrip; S.realTrip=null; renderTrip(); } }
+  const e=S.elm; S.elm=null; if(e) e.disconnect();
+  setStatus('Desconectado',''); setConnectedUI(false);
+  try{ S.wake && S.wake.release(); }catch(e){}
+}
+
+// ---- Erros ----
+async function readMil(){
+  if(S.demo){ renderMil({on:true,count:2}); return; }
+  if(!S.elm) return;
+  try{ renderMil(parseMil(await S.elm.cmd('0101',3000))); }catch(e){}
+}
+function renderMil(m){
+  if(!m){ $('#milTxt').textContent='Não foi possível ler o status da luz.'; return; }
+  $('#mil').classList.toggle('on',m.on);
+  $('#milTxt').innerHTML = (m.on?'<b>Luz de injeção ACESA</b>':'<b>Luz de injeção apagada</b>')+'<br><span style="color:var(--mute);font-size:13px">'+m.count+' código(s) confirmado(s) na ECU do motor</span>';
+}
+function renderDtcs(conf,pend){
+  const el=$('#dtcList'); el.innerHTML='';
+  const all=[...conf.map(c=>[c,false]),...pend.filter(c=>!conf.includes(c)).map(c=>[c,true])];
+  if(!all.length){ el.innerHTML='<div class="empty">✅ Nenhum código de falha encontrado.</div>'; return; }
+  for(const [c,p] of all){
+    const d=dtcDesc(c); const row=document.createElement('div'); row.className='dtc';
+    row.innerHTML=`<div class="code ${p?'pend':''}">${c}</div><div class="d">${d.t||'Sem descrição'}<small>${[p?'Pendente':'',d.g].filter(Boolean).join(' · ')}</small></div>`;
+    el.appendChild(row);
+  }
+}
+async function readDtcs(){
+  const btn=$('#btnReadDtc'); btn.disabled=true; btn.textContent='Lendo…';
+  try{
+    if(S.demo){ await sleep(700); renderDtcs(['P0301','P0171'],['P0420']); return; }
+    S.pause=true;
+    const r3=await S.elm.cmd('03',6000);
+    let r7=''; try{ r7=await S.elm.cmd('07',6000); }catch(e){}
+    renderDtcs(/NO DATA/i.test(r3)?[]:parseDtcs(r3,'43',S.isCAN), /NO DATA/i.test(r7)?[]:parseDtcs(r7,'47',S.isCAN));
+    await readMil();
+  }catch(e){ toast('Falha ao ler: '+e.message); }
+  finally{ S.pause=false; btn.disabled=false; btn.textContent='Ler códigos'; }
+}
+async function clearDtcs(){
+  const ok=await ask('Apagar códigos de falha?','Isso apaga os códigos e apaga a luz de injeção. Faça com o motor DESLIGADO e a ignição ligada. Os dados de prontidão das emissões também são zerados. Se o defeito continuar, o código volta.','Apagar');
+  if(!ok) return;
+  try{
+    if(S.demo){ renderDtcs([],[]); renderMil({on:false,count:0}); toast('Códigos apagados (demonstração)'); return; }
+    S.pause=true;
+    const r=await S.elm.cmd('04',8000);
+    if(/44/.test(hexOnly(r))){ toast('Códigos apagados'); renderDtcs([],[]); }
+    else toast('O carro recusou: '+r,5000);
+    await readMil();
+  }catch(e){ toast('Falha ao apagar: '+e.message); }
+  finally{ S.pause=false; }
+}
+
+// ---- Demonstração ----
+function startDemo(){
+  S.demo=true; S.supported=new Set(PIDS.map(p=>p.pid)); S.running=true;
+  setStatus('Demonstração','ok'); setConnectedUI(true); buildCards();
+  $('#proto').textContent='Simulado'; $('#i-proto').textContent='ISO 15765-4 (CAN 11/500) — simulado';
+  $('#i-vin').textContent='9BWZZZ377VT004251'; $('#i-elm').textContent='ELM327 v1.5 (simulado)'; $('#i-dev').textContent='Demonstração';
+  $('#i-volt').textContent='14,1 V'; $('#i-pids').textContent='todos (simulado)';
+  log('sys','Modo demonstração iniciado');
+  // simula o que um Celta costuma informar (sem MAF, sem nível de combustível)
+  S.supported=new Set(['0C','0D','05','04','11','0F','0B','0E','06','07','42','33','1F','21','31']);
+  S.v={}; S.kml=null; buildCards();
+  S.realTrip=S.trip; S.trip={dist:0,l:0,t:0};
+  let t=0, run=0;
+  S.demoT=setInterval(()=>{
+    t+=0.2; run+=0.2;
+    const thr=Math.max(0,Math.sin(t/3)*35+20+Math.sin(t*1.7)*5);
+    const spd=Math.max(0,62+Math.sin(t/6)*40);
+    const rpm=spd<5?850:Math.max(900, spd*38*(spd>55?1:1.35));
+    const vals={'0C':rpm,'0D':spd,'05':92+Math.sin(t/20)*2,'04':thr*0.9+18,'11':thr+12,'0F':33,'0B':Math.min(98,32+thr*0.9),'0E':14+Math.sin(t)*4,'06':Math.sin(t*2)*4,'07':2.3,'42':14.1,'33':89,'1F':Math.floor(run),'21':0,'31':1240};
+    for(const k in vals) showValue(k,vals[k]);
+    S.bat=14.1;
+    tick(0.2);
+    $('#rate').textContent='5,0 leituras/s (simulado)';
+  },200);
+  readMil(); keepAwake();
+}
+
+// ---- Terminal ----
+$('#cmdForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const c=$('#cmdIn').value.trim().toUpperCase(); if(!c) return;
+  $('#cmdIn').value='';
+  if(S.demo){ log('tx',c); log('rx','(modo demonstração — conecte um adaptador real)'); return; }
+  if(!S.elm){ toast('Conecte primeiro'); return; }
+  try{ await S.elm.cmd(c,8000); }catch(e){}
+});
+try{ $('#extraUuid').value=localStorage.getItem('obd_extra_uuid')||''; }catch(e){}
+$('#btnSaveUuid').onclick=()=>{ try{ localStorage.setItem('obd_extra_uuid',$('#extraUuid').value.trim()); toast('Salvo. Vale na próxima conexão.'); }catch(e){ toast('Não foi possível salvar neste navegador'); } };
+
+// ---- Botões ----
+$('#btnConnect').onclick=connect;
+$('#btnConnect2').onclick=connect;
+$('#btnDemo').onclick=startDemo;
+$('#btnDisconnect').onclick=disconnect;
+$('#btnReadDtc').onclick=readDtcs;
+$('#btnClearDtc').onclick=clearDtcs;
+if(!navigator.bluetooth) $('#noBt').classList.remove('hidden');
+log('sys','Pronto. Toque em Conectar.');
+</script>
+</body>
+</html>
